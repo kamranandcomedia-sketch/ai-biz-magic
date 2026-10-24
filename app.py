@@ -327,34 +327,14 @@ SIZES = {
 
 
 def generate_image(prompt: str, width: int, height: int):
-    """Request an image from Pollinations. Returns (image_bytes, content_type)."""
-    params = {
-        "width": width,
-        "height": height,
-        "model": "flux",
-        "nologo": "true",
-        "seed": random.randint(1, 1_000_000),
-    }
-    headers = {"User-Agent": USER_AGENT}
-    token = os.environ.get("POLLINATIONS_TOKEN")
-    if token:
-        headers["Authorization"] = f"Bearer {token}"
-
-    url = POLLINATIONS_URL + quote(prompt, safe="")
-    last_status = None
-    for _ in range(3):  # the free tier is rate-limited, so retry politely
-        resp = requests.get(url, params=params, headers=headers, timeout=120)
-        content_type = resp.headers.get("content-type", "")
-        if resp.status_code == 200 and content_type.startswith("image/"):
-            return resp.content, content_type
-        last_status = resp.status_code
-        if resp.status_code == 429:
-            time.sleep(16)
-            continue
-        break
-    raise RuntimeError(
-        f"The image server is busy right now (status {last_status}). Please try again in a minute."
-    )
+    """Direct free call to Pollinations AI without tokens"""
+    import requests
+    cleaned_prompt = prompt.replace(" ", "%20")
+    url = f"https://pollinations.ai{cleaned_prompt}?width={width}&height={height}&model=flux&nologo=true&seed={random.randint(1, 1000000)}"
+    resp = requests.get(url, timeout=60)
+    if resp.status_code == 200:
+        return resp.content, "image/jpeg"
+    raise RuntimeError(f"Server response error: {resp.status_code}")
 
 
 def render_image_tool():
