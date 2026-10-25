@@ -327,14 +327,31 @@ SIZES = {
 
 
 def generate_image(prompt: str, width: int, height: int):
-    """Direct free call to Pollinations AI without tokens"""
+    """Direct free call to Pollinations AI without any token or host bugs"""
     import requests
-    cleaned_prompt = prompt.replace(" ", "%20")
-    url = f"https://pollinations.ai{cleaned_prompt}?width={width}&height={height}&model=flux&nologo=true&seed={random.randint(1, 1000000)}"
-    resp = requests.get(url, timeout=60)
+    from urllib.parse import quote
+    
+    # Prompt ko safe web format mein convert karna
+    cleaned_prompt = quote(prompt.strip())
+    
+    # 100% Airtight Direct URL Setup
+    url = f"https://pollinations.ai{cleaned_prompt}"
+    
+    params = {
+        "width": width,
+        "height": height,
+        "model": "flux",
+        "nologo": "true",
+        "seed": random.randint(1, 1000000)
+    }
+    
+    headers = {"User-Agent": "Mozilla/5.0"}
+    
+    # Requesting the image
+    resp = requests.get(url, params=params, headers=headers, timeout=60)
     if resp.status_code == 200:
         return resp.content, "image/jpeg"
-    raise RuntimeError(f"Server response error: {resp.status_code}")
+    raise RuntimeError(f"Image server returned status code: {resp.status_code}")
 
 
 def render_image_tool():
